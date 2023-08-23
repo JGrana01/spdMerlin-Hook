@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# spdmerlinpatch - insert a hook into spdmerlin to call an external script
+# when the speedtest is done. It will pass the download speed (arg1) and upload speed
+# (arg2) to the script /jffs/scripts/spdmerlinhook
+#
+# at some point, this could be rolled into spdMerlin
+#
+
+if [ ! /jffs/scripts/spdmerlin ]; then
+     echo "spdmerlin not found in /jffs/scripts"
+     echo "You need spdmerlin installed"
+     exit
+fi
+
+if [ ! -x /jffs/scripts/spdmerlinhook ]; then
+        echo "spdmerlinhook doesn't exist in /jffs/scripts"
+        echo -n "Create it now? "
+        read answer
+        case $answer in
+                y|Y)
+                        printf "#!/bin/sh\n" > /jffs/scripts/spdmerlinhook
+                        printf "# spdmerlinhook - called after spdMerlin has run a speedtest\n" >> /jffs/scripts/spdmerlinhook
+                        printf "# passes Download as arg1 and Upload as arg2\n" >> /jffs/scripts/spdmerlinhook
+                        chmod +x /jffs/scripts/spdmerlinhook
+                        echo "Done, created"
+                ;;
+                *)
+                        echo "Ok, needed for the hook...exiting"
+                        exit
+                ;;
+        esac
+fi
+
+
+if ! $(grep spdmerlinhook /jffs/scripts/spdmerlin > /dev/null); then
+        if [ ! -f /jffs/scripts/spdmerlin.orig ]; then
+                cp /jffs/scripts/spdmerlin /jffs/scripts/spdmerlin.orig
+        fi
+        sed -i '/var spdteststatus = "Done"/a # Speedtest hook patch\n\t\t\tif [ -x /jffs/scripts/spdmerlinhook ]; then\n\t\t\t\t/jffs/scripts/spdmerlinh
+        echo "spdmerlin patched"
+else
+        echo "spdmerlin not patched, spdmerlinhook already installed"
+fi
